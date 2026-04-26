@@ -36,3 +36,5 @@ Dla każdego użytkownika system powinien wylosować od 1 do 3 kont.
 DLa każdego z kont powinien zostać wylosowany stan konta w zakresie od 0 do 100 000.
 
 Pierwotnie lista operacji powinna być pusta. 
+
+Id powinny być na typie Long.
