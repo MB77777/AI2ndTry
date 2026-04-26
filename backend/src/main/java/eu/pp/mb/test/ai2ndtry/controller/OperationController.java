@@ -1,10 +1,10 @@
 package eu.pp.mb.test.ai2ndtry.controller;
 
 import eu.pp.mb.test.ai2ndtry.model.Account;
+import eu.pp.mb.test.ai2ndtry.model.AccountCurrency;
 import eu.pp.mb.test.ai2ndtry.model.Operation;
 import eu.pp.mb.test.ai2ndtry.model.OperationStatus;
 import eu.pp.mb.test.ai2ndtry.model.OperationType;
-import eu.pp.mb.test.ai2ndtry.repository.AccountRepository;
 import eu.pp.mb.test.ai2ndtry.repository.OperationRepository;
 import eu.pp.mb.test.ai2ndtry.service.OperationService;
 import org.springframework.data.domain.Sort;
@@ -28,16 +28,13 @@ import java.util.List;
 public class OperationController {
 
     private final OperationRepository operationRepository;
-    private final AccountRepository accountRepository;
     private final OperationService operationService;
 
     public OperationController(
             OperationRepository operationRepository,
-            AccountRepository accountRepository,
             OperationService operationService
     ) {
         this.operationRepository = operationRepository;
-        this.accountRepository = accountRepository;
         this.operationService = operationService;
     }
 
@@ -77,16 +74,40 @@ public class OperationController {
     }
 
     private OperationResponse toResponse(Operation operation) {
+        Account sourceAccount = operation.getSourceAccount();
+        Account targetAccount = operation.getTargetAccount();
+
         return new OperationResponse(
                 operation.getId(),
                 operation.getType(),
-                operation.getSourceAccount() != null ? operation.getSourceAccount().getId() : null,
-                operation.getTargetAccount() != null ? operation.getTargetAccount().getId() : null,
+                sourceAccount != null ? sourceAccount.getId() : null,
+                sourceAccount != null ? sourceAccount.getNumber() : null,
+                sourceAccount != null ? sourceAccount.getOwner().getId() : null,
+                sourceAccount != null ? sourceAccount.getOwner().getFirstName() : null,
+                sourceAccount != null ? sourceAccount.getOwner().getLastName() : null,
+                targetAccount != null ? targetAccount.getId() : null,
+                targetAccount != null ? targetAccount.getNumber() : null,
+                targetAccount != null ? targetAccount.getOwner().getId() : null,
+                targetAccount != null ? targetAccount.getOwner().getFirstName() : null,
+                targetAccount != null ? targetAccount.getOwner().getLastName() : null,
                 operation.getAmount(),
+                operationCurrency(sourceAccount, targetAccount),
                 operation.getOperationAt(),
                 operation.getInitiatedBy().getId(),
+                operation.getInitiatedBy().getFirstName(),
+                operation.getInitiatedBy().getLastName(),
                 operation.getStatus()
         );
+    }
+
+    private AccountCurrency operationCurrency(Account sourceAccount, Account targetAccount) {
+        if (sourceAccount != null) {
+            return sourceAccount.getCurrency();
+        }
+        if (targetAccount != null) {
+            return targetAccount.getCurrency();
+        }
+        return null;
     }
 
     public record CreateOperationRequest(
@@ -103,10 +124,21 @@ public class OperationController {
             Long id,
             OperationType type,
             Long sourceAccountId,
+            String sourceAccountNumber,
+            Long sourceOwnerId,
+            String sourceOwnerFirstName,
+            String sourceOwnerLastName,
             Long targetAccountId,
+            String targetAccountNumber,
+            Long targetOwnerId,
+            String targetOwnerFirstName,
+            String targetOwnerLastName,
             BigDecimal amount,
+            AccountCurrency currency,
             LocalDateTime operationAt,
             Long initiatedByUserId,
+            String initiatedByFirstName,
+            String initiatedByLastName,
             OperationStatus status
     ) {
     }

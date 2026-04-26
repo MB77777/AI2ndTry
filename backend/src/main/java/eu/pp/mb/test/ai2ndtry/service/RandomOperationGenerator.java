@@ -3,7 +3,6 @@ package eu.pp.mb.test.ai2ndtry.service;
 import eu.pp.mb.test.ai2ndtry.model.Account;
 import eu.pp.mb.test.ai2ndtry.model.OperationType;
 import eu.pp.mb.test.ai2ndtry.repository.AccountRepository;
-import eu.pp.mb.test.ai2ndtry.repository.BankUserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -26,19 +25,16 @@ public class RandomOperationGenerator {
 
     private final TaskScheduler taskScheduler;
     private final OperationService operationService;
-    private final BankUserRepository bankUserRepository;
     private final AccountRepository accountRepository;
     private final Random random = new Random();
 
     public RandomOperationGenerator(
             TaskScheduler taskScheduler,
             OperationService operationService,
-            BankUserRepository bankUserRepository,
             AccountRepository accountRepository
     ) {
         this.taskScheduler = taskScheduler;
         this.operationService = operationService;
-        this.bankUserRepository = bankUserRepository;
         this.accountRepository = accountRepository;
     }
 
@@ -64,21 +60,17 @@ public class RandomOperationGenerator {
 
     private void generateRandomOperation() {
         List<Account> accounts = accountRepository.findAll();
-        List<Long> userIds = bankUserRepository.findAll().stream()
-                .map(user -> user.getId())
-                .toList();
 
-        if (accounts.isEmpty() || userIds.isEmpty()) {
+        if (accounts.isEmpty()) {
             return;
         }
 
         OperationType type = pickType(accounts);
-        Long initiatedByUserId = userIds.get(random.nextInt(userIds.size()));
 
         switch (type) {
-            case WPLATA -> createDeposit(accounts, initiatedByUserId);
-            case WYPLATA -> createWithdrawal(accounts, initiatedByUserId);
-            case TRANSAKCJA -> createTransfer(accounts, initiatedByUserId);
+            case WPLATA -> createDeposit(accounts);
+            case WYPLATA -> createWithdrawal(accounts);
+            case TRANSAKCJA -> createTransfer(accounts);
         }
     }
 
@@ -99,24 +91,24 @@ public class RandomOperationGenerator {
         return types[random.nextInt(types.length)];
     }
 
-    private void createDeposit(List<Account> accounts, Long initiatedByUserId) {
+    private void createDeposit(List<Account> accounts) {
         Account target = accounts.get(random.nextInt(accounts.size()));
         operationService.registerAndExecute(
                 OperationType.WPLATA,
                 null,
                 target.getId(),
                 randomAmount(BigDecimal.valueOf(5000)),
-                initiatedByUserId,
+                target.getOwner().getId(),
                 null
         );
     }
 
-    private void createWithdrawal(List<Account> accounts, Long initiatedByUserId) {
+    private void createWithdrawal(List<Account> accounts) {
         List<Account> candidates = accounts.stream()
                 .filter(account -> account.getBalance().signum() > 0)
                 .toList();
         if (candidates.isEmpty()) {
-            createDeposit(accounts, initiatedByUserId);
+            createDeposit(accounts);
             return;
         }
 
@@ -126,17 +118,17 @@ public class RandomOperationGenerator {
                 source.getId(),
                 null,
                 randomAmount(source.getBalance()),
-                initiatedByUserId,
+                source.getOwner().getId(),
                 null
         );
     }
 
-    private void createTransfer(List<Account> accounts, Long initiatedByUserId) {
+    private void createTransfer(List<Account> accounts) {
         List<Account> sourceCandidates = accounts.stream()
                 .filter(account -> account.getBalance().signum() > 0)
                 .toList();
         if (sourceCandidates.isEmpty()) {
-            createDeposit(accounts, initiatedByUserId);
+            createDeposit(accounts);
             return;
         }
 
@@ -151,6 +143,9 @@ public class RandomOperationGenerator {
             }
 
             Account target = targetCandidates.get(random.nextInt(targetCandidates.size()));
+            Long initiatedByUserId = random.nextBoolean()
+                    ? source.getOwner().getId()
+                    : target.getOwner().getId();
             operationService.registerAndExecute(
                     OperationType.TRANSAKCJA,
                     source.getId(),
@@ -162,7 +157,7 @@ public class RandomOperationGenerator {
             return;
         }
 
-        createWithdrawal(accounts, initiatedByUserId);
+        createWithdrawal(accounts);
     }
 
     private BigDecimal randomAmount(BigDecimal upperBoundInclusive) {

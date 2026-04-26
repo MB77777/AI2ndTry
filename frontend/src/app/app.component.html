@@ -1,0 +1,371 @@
+@if (showTitlePage()) {
+  <main class="title-page" aria-label="Strona tytulowa aplikacji SailBank">
+    <img class="title-logo" src="./assets/SailBankLogo.png" alt="SailBank">
+  </main>
+} @else {
+  <main class="app-shell">
+    <header class="app-header">
+      <div class="header-copy">
+        @if (activeView() === 'transactions') {
+          <h1>Transakcje</h1>
+          @if (transactionUser()) {
+            <p>{{ transactionUser()?.firstName }} {{ transactionUser()?.lastName }}</p>
+          } @else {
+            <p>Wszystkie transakcje klientow systemu SailBank</p>
+          }
+        } @else if (activeView() === 'accounts') {
+          <h1>Rachunki</h1>
+          @if (selectedUser()) {
+            <p>{{ selectedUser()?.firstName }} {{ selectedUser()?.lastName }}</p>
+          } @else {
+            <p>Wszystkie rachunki klientow systemu SailBank</p>
+          }
+        } @else {
+          <h1>Uzytkownicy</h1>
+          <p>Lista kont bankowych klientow systemu SailBank</p>
+        }
+      </div>
+      <img class="brand-logo" src="./assets/SailBankLogo.png" alt="SailBank">
+    </header>
+
+    @if (activeView() === 'transactions') {
+      <section class="table-panel" aria-labelledby="operations-heading">
+        <div class="toolbar">
+          <button
+            class="back-button"
+            type="button"
+            (click)="closeTransactions()"
+            aria-label="Powrot do uzytkownikow"
+            title="Powrot">
+            ‹
+          </button>
+
+          <div>
+            <h2 id="operations-heading">Lista transakcji</h2>
+            <span>{{ filteredOperations().length }} rekordow</span>
+          </div>
+
+          <label class="search-field">
+            <span>Szukaj</span>
+            <input
+              type="search"
+              [ngModel]="transactionSearchText()"
+              (ngModelChange)="updateTransactionSearch($event)"
+              placeholder="Klient lub numer konta"
+              autocomplete="off">
+          </label>
+
+          <div class="auto-refresh">
+            <label class="auto-check">
+              <input
+                type="checkbox"
+                [ngModel]="transactionAutoRefresh()"
+                (ngModelChange)="updateTransactionAutoRefresh($event)">
+              <span>auto</span>
+            </label>
+            <label class="seconds-field">
+              <span>Sek.</span>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                [disabled]="!transactionAutoRefresh()"
+                [ngModel]="transactionRefreshSeconds()"
+                (ngModelChange)="updateTransactionRefreshSeconds($event)">
+            </label>
+          </div>
+        </div>
+
+        @if (operationsLoading()) {
+          <div class="state">Ladowanie transakcji...</div>
+        } @else if (operationsError()) {
+          <div class="state state-error">{{ operationsError() }}</div>
+        } @else {
+          <div class="table-wrap">
+            <table class="operations-table">
+              <thead>
+                <tr>
+                  @for (column of operationColumns; track column.key) {
+                    <th scope="col">
+                      <button type="button" (click)="sortOperationsBy(column.key)">
+                        <span>{{ column.label }}</span>
+                        <span class="sort-indicator">{{ operationSortMarker(column.key) }}</span>
+                      </button>
+                    </th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (operation of filteredOperations(); track operation.id) {
+                  <tr>
+                    <td>{{ operation.id }}</td>
+                    <td>
+                      <select class="operation-type-select" [ngModel]="operation.type" aria-label="Typ transakcji">
+                        @for (type of operationTypes; track type) {
+                          <option [ngValue]="type">{{ type }}</option>
+                        }
+                      </select>
+                    </td>
+                    <td>
+                      <span class="account-number">{{ operation.sourceAccountNumber || '-' }}</span>
+                      @if (operation.sourceOwnerFirstName && operation.sourceOwnerLastName) {
+                        <span class="account-owner">{{ operation.sourceOwnerFirstName }} {{ operation.sourceOwnerLastName }}</span>
+                      }
+                    </td>
+                    <td>
+                      <span class="account-number">{{ operation.targetAccountNumber || '-' }}</span>
+                      @if (operation.targetOwnerFirstName && operation.targetOwnerLastName) {
+                        <span class="account-owner">{{ operation.targetOwnerFirstName }} {{ operation.targetOwnerLastName }}</span>
+                      }
+                    </td>
+                    <td>
+                      {{ operation.amount | number:'1.2-2' }}
+                      @if (operationCurrency(operation)) {
+                        <span>{{ operationCurrency(operation) }}</span>
+                      }
+                    </td>
+                    <td>{{ formatDateTime(operation.operationAt) }}</td>
+                    <td>
+                      <span>{{ operation.initiatedByFirstName }} {{ operation.initiatedByLastName }}</span>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td class="empty-cell" [attr.colspan]="operationColumns.length">Brak transakcji dla podanych kryteriow.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+    } @else if (activeView() === 'accounts') {
+      <section class="table-panel" aria-labelledby="accounts-heading">
+        <div class="toolbar">
+          <button
+            class="back-button"
+            type="button"
+            (click)="closeAccounts()"
+            aria-label="Powrot do uzytkownikow"
+            title="Powrot">
+            ‹
+          </button>
+
+          <div>
+            <h2 id="accounts-heading">Tabela rachunkow</h2>
+            <span>{{ filteredAccounts().length }} rekordow</span>
+          </div>
+
+          <label class="search-field">
+            <span>Szukaj</span>
+            <input
+              type="search"
+              [ngModel]="accountSearchText()"
+              (ngModelChange)="updateAccountSearch($event)"
+              placeholder="Numer rachunku lub klient"
+              autocomplete="off">
+          </label>
+
+          <div class="auto-refresh">
+            <label class="auto-check">
+              <input
+                type="checkbox"
+                [ngModel]="accountAutoRefresh()"
+                (ngModelChange)="updateAccountAutoRefresh($event)">
+              <span>auto</span>
+            </label>
+            <label class="seconds-field">
+              <span>Sek.</span>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                [disabled]="!accountAutoRefresh()"
+                [ngModel]="accountRefreshSeconds()"
+                (ngModelChange)="updateAccountRefreshSeconds($event)">
+            </label>
+          </div>
+        </div>
+
+        @if (selectedUser()) {
+          <form class="account-form" (ngSubmit)="createAccount()">
+            <label>
+              <span>Numer rachunku</span>
+              <input
+                type="text"
+                inputmode="numeric"
+                maxlength="5"
+                [ngModel]="accountForm().number"
+                (ngModelChange)="updateAccountNumber($event)"
+                name="accountNumber"
+                autocomplete="off">
+            </label>
+
+            <label>
+              <span>Waluta</span>
+              <select
+                [ngModel]="accountForm().currency"
+                (ngModelChange)="updateAccountCurrency($event)"
+                name="accountCurrency">
+                @for (currency of currencies(); track currency) {
+                  <option [ngValue]="currency">{{ currency }}</option>
+                }
+              </select>
+            </label>
+
+            <label>
+              <span>Saldo poczatkowe</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                [ngModel]="accountForm().balance"
+                (ngModelChange)="updateAccountBalance($event)"
+                name="accountBalance">
+            </label>
+
+            <button class="primary-button" type="submit" [disabled]="!canCreateAccount()">
+              {{ accountSaving() ? 'Zapisywanie...' : 'Dodaj rachunek' }}
+            </button>
+
+            @if (accountFormError()) {
+              <div class="form-message state-error">{{ accountFormError() }}</div>
+            } @else if (accountFormMessage()) {
+              <div class="form-message">{{ accountFormMessage() }}</div>
+            }
+          </form>
+        }
+
+        @if (accountsLoading()) {
+          <div class="state">Ladowanie rachunkow...</div>
+        } @else if (accountsError()) {
+          <div class="state state-error">{{ accountsError() }}</div>
+        } @else {
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  @for (column of accountColumns; track column.key) {
+                    <th scope="col">
+                      <button type="button" (click)="sortAccountsBy(column.key)">
+                        <span>{{ column.label }}</span>
+                        <span class="sort-indicator">{{ accountSortMarker(column.key) }}</span>
+                      </button>
+                    </th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (account of filteredAccounts(); track account.id) {
+                  <tr>
+                    <td>{{ account.id }}</td>
+                    <td>{{ account.number }}</td>
+                    <td>{{ accountOwnerName(account) }}</td>
+                    <td>{{ account.currency }}</td>
+                    <td>{{ account.balance | number:'1.2-2' }}</td>
+                    <td>{{ formatCreatedAt(account.createdAt) }}</td>
+                    <td>{{ formatOptionalDateTime(account.lastOperationAt) }}</td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td class="empty-cell" [attr.colspan]="accountColumns.length">Brak rachunkow dla podanych kryteriow.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+    } @else {
+    <section class="table-panel" aria-labelledby="users-heading">
+      <div class="toolbar">
+        <div>
+          <h2 id="users-heading">Tabela uzytkownikow</h2>
+          <span>{{ totalElements() }} rekordow</span>
+        </div>
+
+        <div class="toolbar-actions">
+          <button class="secondary-button currency-button" type="button" (click)="openAllAccounts()">$</button>
+          <button class="secondary-button currency-button" type="button" (click)="openAllTransactions()">$ € £ ¥ ¤</button>
+
+          <label class="search-field">
+            <span>Szukaj</span>
+            <input
+              type="search"
+              [ngModel]="searchText()"
+              (ngModelChange)="updateSearch($event)"
+              placeholder="Imie lub nazwisko"
+              autocomplete="off">
+          </label>
+        </div>
+      </div>
+
+      @if (loading()) {
+        <div class="state">Ladowanie danych...</div>
+      } @else if (error()) {
+        <div class="state state-error">{{ error() }}</div>
+      } @else {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                @for (column of columns; track column.key) {
+                  <th scope="col">
+                    <button type="button" (click)="sortBy(column.key)">
+                      <span>{{ column.label }}</span>
+                      <span class="sort-indicator">{{ sortMarker(column.key) }}</span>
+                    </button>
+                  </th>
+                }
+                <th class="actions-heading" scope="col" aria-label="Akcje"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (user of users(); track user.id) {
+                <tr>
+                  <td>{{ user.id }}</td>
+                  <td>{{ user.firstName }}</td>
+                  <td>{{ user.lastName }}</td>
+                  <td>{{ user.login }}</td>
+                  <td>{{ user.birthDate }}</td>
+                  <td>{{ formatCreatedAt(user.createdAt) }}</td>
+                  <td class="action-cell action-buttons">
+                    <button
+                      class="action-button"
+                      type="button"
+                      (click)="openAccounts(user)"
+                      [attr.aria-label]="'Konta uzytkownika ' + user.firstName + ' ' + user.lastName"
+                      title="Konta">
+                      $
+                    </button>
+                    <button
+                      class="action-button transaction-action"
+                      type="button"
+                      (click)="openTransactions(user)"
+                      [attr.aria-label]="'Transakcje uzytkownika ' + user.firstName + ' ' + user.lastName"
+                      title="Transakcje">
+                      T
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td class="empty-cell" [attr.colspan]="columns.length + 1">Brak uzytkownikow dla podanych kryteriow.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <nav class="pagination" aria-label="Stronnicowanie uzytkownikow">
+          <button type="button" (click)="goToPage(0)" [disabled]="pageIndex() === 0">Pierwsza</button>
+          <button type="button" (click)="previousPage()" [disabled]="pageIndex() === 0">Poprzednia</button>
+          <span>{{ pageLabel() }}</span>
+          <button type="button" (click)="nextPage()" [disabled]="pageIndex() + 1 >= totalPages()">Nastepna</button>
+          <button type="button" (click)="goToPage(totalPages() - 1)" [disabled]="pageIndex() + 1 >= totalPages()">Ostatnia</button>
+        </nav>
+      }
+    </section>
+    }
+  </main>
+}

@@ -2,7 +2,9 @@ package eu.pp.mb.test.ai2ndtry.controller;
 
 import eu.pp.mb.test.ai2ndtry.model.BankUser;
 import eu.pp.mb.test.ai2ndtry.repository.BankUserRepository;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -29,10 +32,27 @@ public class BankUserController {
     }
 
     @GetMapping
-    public List<BankUserResponse> findAll() {
-        return bankUserRepository.findAll(Sort.by(Sort.Direction.ASC, "id")).stream()
-                .map(this::toResponse)
-                .toList();
+    public BankUserPageResponse findAll(
+            @PageableDefault(sort = "lastName") Pageable pageable,
+            @RequestParam(defaultValue = "") String search
+    ) {
+        Page<BankUser> users = search == null || search.isBlank()
+                ? bankUserRepository.findAll(pageable)
+                : bankUserRepository.searchByFirstNameOrLastName(search.trim(), pageable);
+
+        Page<BankUserResponse> responsePage = users.map(this::toResponse);
+        return new BankUserPageResponse(
+                responsePage.getContent(),
+                users.getNumber(),
+                users.getSize(),
+                users.getTotalElements(),
+                users.getTotalPages(),
+                users.isFirst(),
+                users.isLast(),
+                users.getSort().stream()
+                        .map(order -> new SortResponse(order.getProperty(), order.getDirection().name()))
+                        .toList()
+        );
     }
 
     @GetMapping("/{id}")
@@ -99,6 +119,24 @@ public class BankUserController {
             String login,
             LocalDate birthDate,
             LocalDateTime createdAt
+    ) {
+    }
+
+    public record BankUserPageResponse(
+            List<BankUserResponse> content,
+            int page,
+            int size,
+            long totalElements,
+            int totalPages,
+            boolean first,
+            boolean last,
+            List<SortResponse> sort
+    ) {
+    }
+
+    public record SortResponse(
+            String property,
+            String direction
     ) {
     }
 }

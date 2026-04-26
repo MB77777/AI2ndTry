@@ -27,7 +27,8 @@ public class DemoDataInitializer implements ApplicationRunner {
             "Adam", "Bartosz", "Celina", "Damian", "Eliza",
             "Filip", "Grzegorz", "Hanna", "Igor", "Joanna",
             "Kacper", "Laura", "Marek", "Natalia", "Oskar",
-            "Paulina", "Rafal", "Sandra", "Tomasz", "Wiktoria"
+            "Paulina", "Rafal", "Sandra", "Tomasz", "Wiktoria",
+            "Michał", "Renata", "Zosia", "Julia", "Ludwik", "Anna"
     );
 
     private static final List<String> LAST_NAMES = List.of(
@@ -64,7 +65,7 @@ public class DemoDataInitializer implements ApplicationRunner {
 
         for (int i = 0; i < 20; i++) {
             String firstName = firstNames.get(i);
-            String lastName = LAST_NAMES.get(random.nextInt(LAST_NAMES.size()));
+            String lastName = randomLastName(firstName);
             LocalDateTime createdAt = LocalDateTime.now()
                     .minusDays(random.nextInt(3650))
                     .withNano(0);
@@ -91,6 +92,24 @@ public class DemoDataInitializer implements ApplicationRunner {
                         .build());
             }
         }
+    }
+
+    private String randomLastName(String firstName) {
+        List<String> candidates = LAST_NAMES.stream()
+                .filter(lastName -> isLastNameMatchingFirstName(firstName, lastName))
+                .toList();
+        return candidates.get(random.nextInt(candidates.size()));
+    }
+
+    private boolean isLastNameMatchingFirstName(String firstName, String lastName) {
+        if (isFemaleFirstName(firstName)) {
+            return !lastName.endsWith("i");
+        }
+        return !lastName.endsWith("a") && !lastName.endsWith("A");
+    }
+
+    private boolean isFemaleFirstName(String firstName) {
+        return firstName.endsWith("a") || firstName.endsWith("A");
     }
 
     private String buildUniqueLogin(String firstName, String lastName, int index) {

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -34,10 +35,29 @@ public class AccountController {
     }
 
     @GetMapping
-    public List<AccountResponse> findAll() {
-        return accountRepository.findAll(Sort.by(Sort.Direction.ASC, "id")).stream()
+    public List<AccountResponse> findAll(
+            @RequestParam(required = false) Long ownerId,
+            @RequestParam(required = false) String number,
+            @RequestParam(required = false) String ownerFirstName,
+            @RequestParam(required = false) String ownerLastName
+    ) {
+        Sort sort = Sort.by(Sort.Direction.ASC, "id");
+        List<Account> accounts = accountRepository.findAllMatching(
+                ownerId,
+                emptyToNull(number),
+                emptyToNull(ownerFirstName),
+                emptyToNull(ownerLastName),
+                sort
+        );
+
+        return accounts.stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @GetMapping("/currencies")
+    public List<AccountCurrency> findCurrencies() {
+        return List.of(AccountCurrency.values());
     }
 
     @GetMapping("/{id}")
@@ -61,6 +81,9 @@ public class AccountController {
         if (!number.matches("\\d{5}")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "number must contain exactly 5 digits");
         }
+        if (accountRepository.existsByNumber(number)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "number already exists");
+        }
 
         Account account = Account.builder()
                 .number(number)
@@ -83,6 +106,13 @@ public class AccountController {
         return value;
     }
 
+    private String emptyToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
+    }
+
     private <T> T requireValue(T value, String fieldName) {
         if (value == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " is required");
@@ -98,7 +128,9 @@ public class AccountController {
                 account.getCurrency(),
                 account.getBalance(),
                 account.getLastOperationAt(),
-                account.getOwner().getId()
+                account.getOwner().getId(),
+                account.getOwner().getFirstName(),
+                account.getOwner().getLastName()
         );
     }
 
@@ -117,7 +149,9 @@ public class AccountController {
             AccountCurrency currency,
             BigDecimal balance,
             LocalDateTime lastOperationAt,
-            Long ownerId
+            Long ownerId,
+            String ownerFirstName,
+            String ownerLastName
     ) {
     }
 }

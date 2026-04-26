@@ -6,7 +6,7 @@
     <parent>
         <groupId>eu.pp.mb.test</groupId>
         <artifactId>AI2ndTry</artifactId>
-        <version>0.0.8</version>
+        <version>0.1.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -14,23 +14,53 @@
     <packaging>jar</packaging>
 
     <name>AI2ndTry Frontend</name>
-    <description>Static frontend application shell.</description>
+    <description>Angular frontend application.</description>
 
     <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>npm-install</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>npm</executable>
+                            <arguments>
+                                <argument>install</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm-build</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>npm</executable>
+                            <arguments>
+                                <argument>run</argument>
+                                <argument>build</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
         <resources>
             <resource>
-                <directory>src/main/resources</directory>
-                <filtering>true</filtering>
-                <includes>
-                    <include>META-INF/resources/sailbank/index.html</include>
-                </includes>
-            </resource>
-            <resource>
-                <directory>src/main/resources</directory>
+                <directory>dist/sailbank/browser</directory>
                 <filtering>false</filtering>
-                <excludes>
-                    <exclude>META-INF/resources/sailbank/index.html</exclude>
-                </excludes>
+                <includes>
+                    <include>**/*</include>
+                </includes>
+                <targetPath>META-INF/resources/sailbank</targetPath>
             </resource>
         </resources>
     </build>
