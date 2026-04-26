@@ -21,4 +21,11 @@ class HealthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string("OK"));
     }
+
+    @Test
+    void shouldReturnApplicationVersion() throws Exception {
+        mockMvc.perform(get("/version"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("0.0.7"));
+    }
 }

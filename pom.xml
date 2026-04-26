@@ -12,7 +12,7 @@
 
     <groupId>eu.pp.mb.test</groupId>
     <artifactId>AI2ndTry</artifactId>
-    <version>0.0.2</version>
+    <version>0.0.7</version>
     <packaging>pom</packaging>
 
     <name>AI2ndTry</name>
