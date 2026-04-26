@@ -5,7 +5,7 @@
     <parent>
         <groupId>eu.pp.mb.test</groupId>
         <artifactId>AI2ndTry</artifactId>
-        <version>0.0.7</version>
+        <version>0.0.8</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>backend</artifactId>
@@ -25,6 +25,11 @@
         <url/>
     </scm>
     <dependencies>
+        <dependency>
+            <groupId>eu.pp.mb.test</groupId>
+            <artifactId>frontend</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-h2console</artifactId>

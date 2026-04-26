@@ -6,13 +6,32 @@
     <parent>
         <groupId>eu.pp.mb.test</groupId>
         <artifactId>AI2ndTry</artifactId>
-        <version>0.0.7</version>
+        <version>0.0.8</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>frontend</artifactId>
-    <packaging>pom</packaging>
+    <packaging>jar</packaging>
 
     <name>AI2ndTry Frontend</name>
-    <description>Placeholder module for the future frontend application.</description>
+    <description>Static frontend application shell.</description>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>META-INF/resources/sailbank/index.html</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>META-INF/resources/sailbank/index.html</exclude>
+                </excludes>
+            </resource>
+        </resources>
+    </build>
 </project>
